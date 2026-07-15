@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Costes y Rentabilidad</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --card: rgba(30, 41, 59, .75);
+    --card2: #253248;
+    --text: #e8edf5;
+    --muted: #8fa3bd;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --border: rgba(148, 163, 184, .15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(56, 189, 248, .12), transparent 60%),
+      radial-gradient(800px 500px at -10% 20%, rgba(129, 140, 248, .12), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 20px 48px;
+  }
+  .layout {
+    max-width: 1160px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 22px;
+    align-items: start;
+  }
+  .header { grid-column: 1 / -1; margin-bottom: 4px; }
+  @media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
+
+  h1 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 6px;
+  }
+  .subtitle { color: var(--muted); font-size: .92rem; }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .28);
+  }
+  .card h2 {
+    font-size: .8rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: inline-block;
+  }
+
+  label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    background: rgba(11, 17, 32, .7);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 11px 13px;
+    font-size: 1rem;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, input[type=number]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, .18);
+  }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  @media (max-width: 560px) { .row3 { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .rates-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .rates-header h2 { margin-bottom: 0; }
+  button {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0b1120;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 15px;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .12s, filter .12s;
+  }
+  button:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  .rate-status { font-size: .78rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+  .slider-value {
+    font-size: 2rem; font-weight: 800;
+    color: var(--yellow);
+    text-align: center; margin-bottom: 10px;
+    text-shadow: 0 0 24px rgba(251, 191, 36, .35);
+  }
+  input[type=range] { width: 100%; accent-color: var(--yellow); cursor: pointer; height: 22px; }
+  .slider-labels { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-top: 6px; }
+
+  .result {
+    background: var(--card2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .result.r-vef { border-left-color: var(--accent2); }
+  .result.r-gain { border-left-color: var(--green); }
+  .result .label { font-size: .82rem; color: var(--muted); line-height: 1.35; }
+  .result .label strong { color: var(--text); display: block; font-size: .93rem; margin-bottom: 2px; }
+  .result .value { font-size: 1.3rem; font-weight: 800; white-space: nowrap; letter-spacing: -.01em; }
+  .value.usd { color: var(--accent); }
+  .value.vef { color: var(--text); }
+  .value.gain { color: var(--green); }
+  .warning {
+    font-size: .8rem; color: var(--yellow);
+    margin-top: 12px; line-height: 1.5;
+    background: rgba(251, 191, 36, .08);
+    border: 1px solid rgba(251, 191, 36, .2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .warning:empty { display: none; }
+  .product-name-display { color: var(--yellow); text-transform: none; letter-spacing: 0; }
+  .btn-save {
+    width: 100%; margin-top: 12px; padding: 13px;
+    font-size: .95rem;
+    background: linear-gradient(135deg, #34d399, #4ade80);
+  }
+  .btn-wa-main {
+    width: 100%; margin-top: 10px; padding: 13px;
+    font-size: .95rem;
+    background: linear-gradient(135deg, #25d366, #1ebe5d);
+    color: #06281a;
+  }
+
+  /* Foto del producto */
+  .foto-row { display: flex; align-items: center; gap: 12px; }
+  .foto-preview {
+    width: 56px; height: 56px;
+    border-radius: 10px; object-fit: cover;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .btn-foto {
+    background: rgba(11, 17, 32, .7);
+    color: var(--muted);
+    border: 1px dashed rgba(148, 163, 184, .4);
+  }
+  .btn-foto:hover { border-color: var(--accent); color: var(--text); filter: none; transform: none; }
+  .btn-quitar-foto { background: none; color: var(--muted); font-size: .8rem; padding: 4px 8px; display: none; }
+  .btn-quitar-foto:hover { color: var(--red); filter: none; transform: none; }
+
+  /* ---- Panel lateral ---- */
+  .sidebar .card {
+    position: sticky; top: 28px;
+    max-height: calc(100vh - 56px);
+    display: flex; flex-direction: column;
+    margin-bottom: 0;
+  }
+  #listaProductos { overflow-y: auto; padding-right: 2px; }
+  #listaProductos::-webkit-scrollbar { width: 6px; }
+  #listaProductos::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .producto {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color .15s, transform .12s;
+  }
+  .producto:hover { border-color: var(--accent); transform: translateX(-2px); }
+  .p-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .p-nombre { font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-margen {
+    font-size: .72rem; font-weight: 700;
+    color: var(--yellow);
+    background: rgba(251, 191, 36, .12);
+    border-radius: 20px;
+    padding: 2px 9px;
+    flex-shrink: 0;
+  }
+  .p-stats { display: flex; gap: 8px; }
+  .p-stat {
+    flex: 1;
+    background: rgba(11, 17, 32, .55);
+    border-radius: 8px;
+    padding: 7px 9px;
+    min-width: 0;
+  }
+  .p-stat .k { font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .p-stat .v { font-size: .82rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-stat.gan .v { color: var(--green); }
+  .p-thumb {
+    width: 42px; height: 42px;
+    border-radius: 9px; object-fit: cover;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .btn-wa {
+    background: #25d366; color: #06281a;
+    border-radius: 9px;
+    padding: 0 13px;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+  }
+  .p-borrar {
+    background: none; color: var(--muted);
+    font-size: .95rem; padding: 2px 7px; border-radius: 7px;
+    flex-shrink: 0;
+  }
+  .p-borrar:hover { color: var(--red); background: rgba(248, 113, 113, .12); filter: none; transform: none; }
+  .lista-vacia { font-size: .84rem; color: var(--muted); text-align: center; padding: 22px 10px; line-height: 1.6; }
+  .lista-hint { font-size: .72rem; color: var(--muted); margin-top: 10px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="header">
+    <h1>Calculadora de Costes y Rentabilidad</h1>
+    <p class="subtitle">España → Venezuela · EUR → USD → VEF (BCV / Binance)</p>
+  </div>
+
+  <div class="main">
+    <!-- Producto -->
+    <div class="card">
+      <h2>Producto</h2>
+      <div class="field">
+        <label for="nombre">Nombre del producto</label>
+        <input type="text" id="nombre" placeholder="Ej: Auriculares Bluetooth">
+      </div>
+      <div class="field">
+        <label for="costeEur">Coste de adquisición (EUR)</label>
+        <input type="number" id="costeEur" min="0" step="0.01" placeholder="10.00">
+      </div>
+      <div class="field">
+        <label>Foto del producto (opcional, para compartir por WhatsApp)</label>
+        <div class="foto-row">
+          <img id="fotoPreview" class="foto-preview" alt="Foto del producto">
+          <button type="button" class="btn-foto" id="btnFoto">📷 Subir foto</button>
+          <button type="button" class="btn-quitar-foto" id="btnQuitarFoto">✕ Quitar</button>
+          <input type="file" id="fotoInput" accept="image/*" hidden>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasas -->
+    <div class="card">
+      <div class="rates-header">
+        <h2>Tasas del día</h2>
+        <button id="btnActualizar">↻ Actualizar tasas</button>
+      </div>
+      <div class="row3">
+        <div>
+          <label for="eurUsd">EUR → USD</label>
+          <input type="number" id="eurUsd" min="0" step="0.0001" placeholder="1.14">
+        </div>
+        <div>
+          <label for="tasaBcv">USD → VEF (BCV)</label>
+          <input type="number" id="tasaBcv" min="0" step="0.01" placeholder="725.75">
+        </div>
+        <div>
+          <label for="tasaBinance">USD → VEF (Binance)</label>
+          <input type="number" id="tasaBinance" min="0" step="0.01" placeholder="839.04">
+        </div>
+      </div>
+      <div class="rate-status" id="rateStatus">Tasas editables manualmente. Pulsa «Actualizar tasas» para cargarlas automáticamente.</div>
+    </div>
+
+    <!-- Ganancia -->
+    <div class="card">
+      <h2>Ganancia deseada</h2>
+      <div class="slider-value" id="gananciaLabel">50%</div>
+      <input type="range" id="ganancia" min="10" max="100" step="5" value="50">
+      <div class="slider-labels"><span>10%</span><span>100%</span></div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="card">
+      <h2>Resultados <span class="product-name-display" id="nombreDisplay"></span></h2>
+
+      <div class="result">
+        <div class="label"><strong>Coste en USD</strong>a tasa del día EUR/USD</div>
+        <div class="value usd" id="costeUsd">—</div>
+      </div>
+
+      <div class="result">
+        <div class="label"><strong>Precio de venta en USD</strong>si te pagan en dólares (Binance, Zelle, efectivo)</div>
+        <div class="value usd" id="precioUsd">—</div>
+      </div>
+
+      <div class="result r-vef">
+        <div class="label"><strong>Precio de venta en bolívares</strong>calculado con tasa Binance para no perder al recomprar dólares</div>
+        <div class="value vef" id="precioVef">—</div>
+      </div>
+
+      <div class="result r-vef">
+        <div class="label"><strong>Ese precio en Bs equivale a</strong>«dólares BCV» (precio de etiqueta si lo marcas a tasa BCV)</div>
+        <div class="value vef" id="precioUsdBcv">—</div>
+      </div>
+
+      <div class="result r-gain">
+        <div class="label"><strong>Ganancia final</strong>en dólares reales (y su equivalente en euros)</div>
+        <div class="value gain" id="gananciaFinal">—</div>
+      </div>
+
+      <div class="warning" id="avisoBrecha"></div>
+      <button class="btn-save" id="btnGuardar">＋ Guardar producto en la lista</button>
+      <button class="btn-wa-main" id="btnCompartir">✆ Compartir precio por WhatsApp</button>
+    </div>
+  </div>
+
+  <!-- Panel lateral: productos guardados -->
+  <div class="sidebar">
+    <div class="card">
+      <h2>Productos guardados</h2>
+      <div id="listaProductos"></div>
+      <div class="lista-hint">Haz clic en un producto para cargarlo · ✕ para eliminarlo</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const inputs = ['nombre','costeEur','eurUsd','tasaBcv','tasaBinance','ganancia'];
+
+const fmt = (n, dec = 2) => n.toLocaleString('es-VE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+let productos = [];
+let fotoActual = null; // dataURL de la foto del producto en edición
+
+/* ---- Foto ---- */
+
+$('btnFoto').addEventListener('click', () => $('fotoInput').click());
+$('btnQuitarFoto').addEventListener('click', quitarFoto);
+$('fotoInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      // Comprime a máx. 500px para que quepa en localStorage
+      const max = 500;
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s);
+      c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      fotoActual = c.toDataURL('image/jpeg', .82);
+      mostrarFoto();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+function mostrarFoto() {
+  const prev = $('fotoPreview');
+  if (fotoActual) {
+    prev.src = fotoActual;
+    prev.style.display = 'block';
+    $('btnQuitarFoto').style.display = 'inline-block';
+    $('btnFoto').textContent = '📷 Cambiar foto';
+  } else {
+    prev.removeAttribute('src');
+    prev.style.display = 'none';
+    $('btnQuitarFoto').style.display = 'none';
+    $('btnFoto').textContent = '📷 Subir foto';
+  }
+}
+
+function quitarFoto() {
+  fotoActual = null;
+  $('fotoInput').value = '';
+  mostrarFoto();
+}
+
+/* ---- Compartir por WhatsApp ---- */
+
+function mensajeWhatsApp(d) {
+  const l = ['🛍️ *' + d.nombre + '*', ''];
+  if (d.precioUsd != null) l.push('💵 En dólares: *$' + fmt(d.precioUsd) + '* (Zelle / efectivo / Binance)');
+  if (d.precioVef != null) l.push('💰 En bolívares: *' + fmt(d.precioVef) + ' Bs*');
+  if (d.precioUsdBcv != null) l.push('🏷️ Referencia tasa BCV: *$' + fmt(d.precioUsdBcv) + '*');
+  l.push('', '📅 Precios válidos hoy, ' + new Date().toLocaleDateString('es-VE', { day: 'numeric', month: 'long' }) + ' · ¡Escríbeme para apartar el tuyo! ✨');
+  return l.join('\n');
+}
+
+async function compartir(d) {
+  const texto = mensajeWhatsApp(d);
+  // Si hay foto y el dispositivo soporta compartir archivos (móvil), comparte foto + texto
+  if (d.foto && navigator.canShare) {
+    try {
+      const blob = await (await fetch(d.foto)).blob();
+      const file = new File([blob], (d.nombre || 'producto') + '.jpg', { type: 'image/jpeg' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text: texto });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return; // usuario canceló
+    }
+  }
+  // Fallback: abrir WhatsApp con el texto listo
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+
+function compartirActual() {
+  const v = calcularValores();
+  const nombre = $('nombre').value.trim();
+  if (!v) { alert('Completa el coste en EUR y la tasa EUR/USD antes de compartir.'); return; }
+  if (!nombre) { alert('Ponle un nombre al producto antes de compartirlo.'); return; }
+  compartir({ nombre, precioUsd: v.precioUsd, precioVef: v.precioVef, precioUsdBcv: v.precioUsdBcv, foto: fotoActual });
+}
+
+function compartirProducto(id, ev) {
+  ev.stopPropagation();
+  const p = productos.find(x => x.id === id);
+  if (p) compartir(p);
+}
+
+function calcularValores() {
+  const costeEur = parseFloat($('costeEur').value);
+  const eurUsd = parseFloat($('eurUsd').value);
+  const bcv = parseFloat($('tasaBcv').value);
+  const binance = parseFloat($('tasaBinance').value);
+  const m = parseInt($('ganancia').value) / 100;
+  if (!(costeEur > 0) || !(eurUsd > 0)) return null;
+
+  const costeUsd = costeEur * eurUsd;
+  const precioUsd = costeUsd * (1 + m);
+  return {
+    costeEur, eurUsd, bcv, binance, m,
+    costeUsd,
+    precioUsd,
+    gananciaUsd: costeUsd * m,
+    gananciaEur: costeEur * m,
+    precioVef: binance > 0 ? precioUsd * binance : null,
+    precioUsdBcv: (binance > 0 && bcv > 0) ? precioUsd * binance / bcv : null
+  };
+}
+
+function calcular() {
+  const m = parseInt($('ganancia').value) / 100;
+  $('gananciaLabel').textContent = Math.round(m * 100) + '%';
+  const nombre = $('nombre').value.trim();
+  $('nombreDisplay').textContent = nombre ? '· ' + nombre : '';
+
+  guardarEstado();
+
+  const v = calcularValores();
+  if (!v) {
+    ['costeUsd','precioUsd','precioVef','precioUsdBcv','gananciaFinal'].forEach(id => $(id).textContent = '—');
+    $('avisoBrecha').textContent = '';
+    return;
+  }
+
+  $('costeUsd').textContent = '$' + fmt(v.costeUsd);
+  $('precioUsd').textContent = '$' + fmt(v.precioUsd);
+  $('gananciaFinal').textContent = '$' + fmt(v.gananciaUsd) + ' (' + fmt(v.gananciaEur) + ' €)';
+  $('precioVef').textContent = v.precioVef !== null ? fmt(v.precioVef) + ' Bs' : '—';
+  $('precioUsdBcv').textContent = v.precioUsdBcv !== null ? '$' + fmt(v.precioUsdBcv) + ' BCV' : '—';
+
+  if (v.precioVef !== null && v.bcv > 0) {
+    const brecha = ((v.binance / v.bcv) - 1) * 100;
+    $('avisoBrecha').textContent = '⚠ Brecha BCV/Binance: ' + fmt(brecha, 1) +
+      '%. Si vendieras a $' + fmt(v.precioUsd) + ' × tasa BCV (' + fmt(v.precioUsd * v.bcv) +
+      ' Bs), al recomprar dólares en Binance solo recuperarías $' + fmt(v.precioUsd * v.bcv / v.binance) +
+      ' y perderías tu ganancia.';
+  } else {
+    $('avisoBrecha').textContent = '';
+  }
+}
+
+/* ---- Panel de productos ---- */
+
+function guardarProducto() {
+  const v = calcularValores();
+  const nombre = $('nombre').value.trim();
+  if (!v) { alert('Completa el coste en EUR y la tasa EUR/USD antes de guardar.'); return; }
+  if (!nombre) { alert('Ponle un nombre al producto antes de guardarlo.'); return; }
+
+  productos.unshift({
+    id: Date.now(),
+    nombre,
+    costeEur: v.costeEur,
+    costeUsd: v.costeUsd,
+    margen: Math.round(v.m * 100),
+    gananciaUsd: v.gananciaUsd,
+    gananciaEur: v.gananciaEur,
+    precioUsd: v.precioUsd,
+    precioVef: v.precioVef,
+    precioUsdBcv: v.precioUsdBcv,
+    foto: fotoActual
+  });
+  persistirProductos();
+  renderProductos();
+}
+
+function borrarProducto(id, ev) {
+  ev.stopPropagation();
+  productos = productos.filter(p => p.id !== id);
+  persistirProductos();
+  renderProductos();
+}
+
+function cargarProducto(id) {
+  const p = productos.find(x => x.id === id);
+  if (!p) return;
+  $('nombre').value = p.nombre;
+  $('costeEur').value = p.costeEur;
+  $('ganancia').value = p.margen;
+  fotoActual = p.foto || null;
+  mostrarFoto();
+  calcular(); // recalcula con las tasas actuales del día
+}
+
+function renderProductos() {
+  const cont = $('listaProductos');
+  if (!productos.length) {
+    cont.innerHTML = '<div class="lista-vacia">No hay productos guardados.<br>Calcula uno y pulsa «Guardar producto».</div>';
+    return;
+  }
+  cont.innerHTML = productos.map(p => `
+    <div class="producto" onclick="cargarProducto(${p.id})">
+      <div class="p-top">
+        ${p.foto ? `<img class="p-thumb" src="${p.foto}" alt="">` : ''}
+        <div class="p-nombre">${escapeHtml(p.nombre)}</div>
+        <span class="p-margen">${p.margen}%</span>
+        <button class="p-borrar" onclick="borrarProducto(${p.id}, event)" title="Eliminar">✕</button>
+      </div>
+      <div class="p-stats">
+        <div class="p-stat">
+          <div class="k">Coste</div>
+          <div class="v">${fmt(p.costeEur)} €</div>
+        </div>
+        <div class="p-stat gan">
+          <div class="k">Ganancia $</div>
+          <div class="v">$${fmt(p.gananciaUsd)}</div>
+        </div>
+        <div class="p-stat gan">
+          <div class="k">Ganancia €</div>
+          <div class="v">${fmt(p.gananciaEur)} €</div>
+        </div>
+        <button class="btn-wa" onclick="compartirProducto(${p.id}, event)" title="Compartir por WhatsApp">✆</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function persistirProductos() {
+  try { localStorage.setItem('calcProductosLista', JSON.stringify(productos)); } catch (e) { alert('No se pudo guardar (¿almacenamiento lleno? Prueba con fotos más pequeñas).'); }
+}
+
+function restaurarProductos() {
+  try { productos = JSON.parse(localStorage.getItem('calcProductosLista') || '[]'); } catch (e) { productos = []; }
+}
+
+/* ---- Tasas y estado ---- */
+
+async function actualizarTasas() {
+  const status = $('rateStatus');
+  status.textContent = 'Cargando tasas…';
+  const resultados = [];
+
+  try {
+    const r = await fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=USD');
+    const j = await r.json();
+    if (j.rates && j.rates.USD) {
+      $('eurUsd').value = j.rates.USD;
+      resultados.push('EUR/USD: ' + j.rates.USD + ' (' + j.date + ')');
+    }
+  } catch (e) { resultados.push('EUR/USD: error, ingrésala manualmente'); }
+
+  try {
+    const r = await fetch('https://ve.dolarapi.com/v1/dolares');
+    const j = await r.json();
+    const oficial = j.find(d => d.fuente === 'oficial');
+    const paralelo = j.find(d => d.fuente === 'paralelo');
+    if (oficial && oficial.promedio) {
+      $('tasaBcv').value = oficial.promedio;
+      resultados.push('BCV: ' + fmt(oficial.promedio));
+    }
+    if (paralelo && paralelo.promedio) {
+      $('tasaBinance').value = paralelo.promedio;
+      resultados.push('Binance/Paralelo: ' + fmt(paralelo.promedio));
+    }
+  } catch (e) { resultados.push('BCV/Binance: error, ingrésalas manualmente'); }
+
+  status.textContent = resultados.length
+    ? '✓ ' + resultados.join(' · ') + ' — puedes editarlas a mano.'
+    : 'No se pudieron cargar las tasas. Ingrésalas manualmente.';
+  calcular();
+}
+
+function guardarEstado() {
+  const data = {};
+  inputs.forEach(id => data[id] = $(id).value);
+  try { localStorage.setItem('calcCostes', JSON.stringify(data)); } catch (e) {}
+}
+
+function restaurarEstado() {
+  try {
+    const data = JSON.parse(localStorage.getItem('calcCostes') || '{}');
+    inputs.forEach(id => { if (data[id] !== undefined && data[id] !== '') $(id).value = data[id]; });
+  } catch (e) {}
+}
+
+inputs.forEach(id => $(id).addEventListener('input', calcular));
+$('btnActualizar').addEventListener('click', actualizarTasas);
+$('btnGuardar').addEventListener('click', guardarProducto);
+$('btnCompartir').addEventListener('click', compartirActual);
+
+restaurarEstado();
+restaurarProductos();
+renderProductos();
+calcular();
+actualizarTasas();
+</script>
+</body>
+</html>
