@@ -28,6 +28,7 @@
     color: var(--text);
     min-height: 100vh;
     padding: 28px 20px 48px;
+    overflow-anchor: none;
   }
   .layout {
     max-width: 1280px;
@@ -230,7 +231,14 @@
   }
 
   /* Foto del producto */
-  .foto-row { display: flex; align-items: center; gap: 12px; }
+  .foto-row {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px dashed rgba(148, 163, 184, .25);
+    border-radius: 10px;
+    padding: 8px;
+    transition: border-color .15s, background .15s;
+  }
+  .foto-row.drag { border-color: var(--accent); background: rgba(56, 189, 248, .08); }
   .foto-preview {
     width: 56px; height: 56px;
     border-radius: 10px; object-fit: cover;
@@ -316,6 +324,8 @@
   .p-venta .k { color: var(--muted); text-transform: uppercase; font-size: .64rem; letter-spacing: .06em; flex-shrink: 0; }
   .p-venta span { font-weight: 700; }
   .p-venta .eq { color: var(--accent); }
+  .p-venta.mia { background: rgba(74, 222, 128, .07); border-color: rgba(74, 222, 128, .2); }
+  .p-venta.mia .eq { color: var(--green); }
   .p-link {
     text-decoration: none;
     font-size: .9rem;
@@ -364,8 +374,8 @@
         </div>
       </div>
       <div class="field">
-        <label>Foto del producto (opcional, para compartir por WhatsApp)</label>
-        <div class="foto-row">
+        <label>Foto del producto (opcional) — pulsa «Subir foto» o arrástrala aquí</label>
+        <div class="foto-row" id="zonaFoto">
           <img id="fotoPreview" class="foto-preview" alt="Foto del producto">
           <button type="button" class="btn-foto" id="btnFoto">📷 Subir foto</button>
           <button type="button" class="btn-quitar-foto" id="btnQuitarFoto">✕ Quitar</button>
@@ -401,8 +411,8 @@
     <div class="card">
       <h2>Ganancia deseada</h2>
       <div class="slider-value" id="gananciaLabel">50%</div>
-      <input type="range" id="ganancia" min="10" max="100" step="5" value="50">
-      <div class="slider-labels"><span>10%</span><span>100%</span></div>
+      <input type="range" id="ganancia" min="10" max="200" step="1" value="50">
+      <div class="slider-labels"><span>10%</span><span>200%</span></div>
     </div>
 
     <!-- Resultados -->
@@ -441,7 +451,7 @@
       </div>
 
       <div class="warning danger" id="avisoRentable"></div>
-      <div class="warning" id="avisoBrecha"></div>
+      <div class="warning">⚠ Recuerda revisar las tasas del día: la actualización automática puede ir retrasada.</div>
       <button class="btn-save" id="btnGuardar">＋ Guardar producto en la lista</button>
       <button class="btn-wa-main" id="btnCompartir">✆ Compartir precio por WhatsApp</button>
     </div>
@@ -471,8 +481,11 @@ let fotoActual = null; // dataURL de la foto del producto en edición
 $('btnFoto').addEventListener('click', () => $('fotoInput').click());
 $('btnQuitarFoto').addEventListener('click', quitarFoto);
 $('fotoInput').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
+  if (e.target.files[0]) procesarFoto(e.target.files[0]);
+});
+
+function procesarFoto(f) {
+  if (!f || !f.type.startsWith('image/')) return;
   const reader = new FileReader();
   reader.onload = ev => {
     const img = new Image();
@@ -490,6 +503,19 @@ $('fotoInput').addEventListener('change', e => {
     img.src = ev.target.result;
   };
   reader.readAsDataURL(f);
+}
+
+// Arrastrar y soltar (escritorio)
+const zonaFoto = $('zonaFoto');
+['dragenter', 'dragover'].forEach(t => zonaFoto.addEventListener(t, e => {
+  e.preventDefault();
+  zonaFoto.classList.add('drag');
+}));
+zonaFoto.addEventListener('dragleave', e => { e.preventDefault(); zonaFoto.classList.remove('drag'); });
+zonaFoto.addEventListener('drop', e => {
+  e.preventDefault();
+  zonaFoto.classList.remove('drag');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) procesarFoto(e.dataTransfer.files[0]);
 });
 
 function mostrarFoto() {
@@ -594,7 +620,6 @@ function calcular() {
   const v = calcularValores();
   if (!v) {
     ['costeUsd','precioUsd','precioVef','precioUsdBcv','gananciaFinal','ventaVeEq'].forEach(id => $(id).textContent = '—');
-    $('avisoBrecha').textContent = '';
     $('avisoRentable').textContent = '';
     $('gananciaAlerta').style.display = 'none';
     $('gananciaAlerta').closest('.result').classList.remove('nr');
@@ -631,19 +656,6 @@ function calcular() {
     alerta.closest('.result').classList.remove('nr');
   }
 
-  if (v.precioVef !== null && v.bcv > 0) {
-    const brecha = ((v.binance / v.bcv) - 1) * 100;
-    const recuperado = v.precioUsd * v.bcv / v.binance;
-    const margenReal = (recuperado / v.costeUsd - 1) * 100;
-    $('avisoBrecha').textContent = '⚠ Brecha BCV/Binance: ' + fmt(brecha, 1) +
-      '%. Si cobras en bolívares, usa siempre el «Precio de venta en bolívares» (' + fmt(v.precioVef) +
-      ' Bs). Si por error convirtieras el precio en USD directo a tasa BCV ($' + fmt(v.precioUsd) +
-      ' × BCV = ' + fmt(v.precioUsd * v.bcv) + ' Bs), al recomprar dólares en Binance solo recuperarías $' +
-      fmt(recuperado) + ': tu ganancia real bajaría del ' + Math.round(v.m * 100) + '% al ' + fmt(margenReal, 1) + '%' +
-      (margenReal < 0 ? ' (venderías con pérdida)' : '') + '.';
-  } else {
-    $('avisoBrecha').textContent = '';
-  }
 }
 
 /* ---- Panel de productos ---- */
@@ -727,9 +739,16 @@ function renderProductos() {
         </div>
         <button class="btn-wa" onclick="compartirProducto(${p.id}, event)" title="Compartir por WhatsApp">✆</button>
       </div>
+      ${p.precioVef != null ? `
+      <div class="p-venta mia">
+        <span class="k">Tu venta</span>
+        <span>${fmt(p.precioVef)} Bs</span>
+        <span class="eq">$${p.precioUsdBcv != null ? fmt(p.precioUsdBcv) : '—'} BCV</span>
+        <span class="eq">$${fmt(p.precioUsd)} Bin</span>
+      </div>` : ''}
       ${p.ventaVe ? `
       <div class="p-venta">
-        <span class="k">Venta VE</span>
+        <span class="k">Venta tienda</span>
         <span>${fmt(p.ventaVe)} Bs</span>
         <span class="eq">$${p.ventaVeUsdBcv != null ? fmt(p.ventaVeUsdBcv) : '—'} BCV</span>
         <span class="eq">$${p.ventaVeUsdBinance != null ? fmt(p.ventaVeUsdBinance) : '—'} Bin</span>
