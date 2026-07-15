@@ -30,15 +30,15 @@
     padding: 28px 20px 48px;
   }
   .layout {
-    max-width: 1160px;
+    max-width: 1280px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 1fr) 470px;
     gap: 22px;
     align-items: start;
   }
   .header { grid-column: 1 / -1; margin-bottom: 4px; }
-  @media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
+  @media (max-width: 1020px) { .layout { grid-template-columns: 1fr; } }
 
   h1 {
     font-size: 1.65rem;
@@ -97,7 +97,8 @@
     box-shadow: 0 0 0 3px rgba(56, 189, 248, .18);
   }
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 12px; }
-  @media (max-width: 560px) { .row3 { grid-template-columns: 1fr; } }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 560px) { .row3, .row2 { grid-template-columns: 1fr; } }
   .field { margin-bottom: 14px; }
   .field:last-child { margin-bottom: 0; }
 
@@ -241,6 +242,28 @@
     font-size: 1.05rem;
     flex-shrink: 0;
   }
+  .p-venta {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 8px;
+    background: rgba(129, 140, 248, .08);
+    border: 1px solid rgba(129, 140, 248, .18);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: .78rem;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .p-venta .k { color: var(--muted); text-transform: uppercase; font-size: .64rem; letter-spacing: .06em; flex-shrink: 0; }
+  .p-venta span { font-weight: 700; }
+  .p-venta .eq { color: var(--accent); }
+  .p-link {
+    text-decoration: none;
+    font-size: .9rem;
+    padding: 2px 6px;
+    border-radius: 7px;
+    flex-shrink: 0;
+  }
+  .p-link:hover { background: rgba(56, 189, 248, .15); }
   .p-borrar {
     background: none; color: var(--muted);
     font-size: .95rem; padding: 2px 7px; border-radius: 7px;
@@ -269,6 +292,16 @@
       <div class="field">
         <label for="costeEur">Coste de adquisición (EUR)</label>
         <input type="number" id="costeEur" min="0" step="0.01" placeholder="10.00">
+      </div>
+      <div class="row2">
+        <div>
+          <label for="precioVentaVe">Precio de venta en Venezuela (Bs a tasa BCV, opcional)</label>
+          <input type="number" id="precioVentaVe" min="0" step="0.01" placeholder="12500">
+        </div>
+        <div>
+          <label for="linkVe">Link del producto en Venezuela (opcional)</label>
+          <input type="text" id="linkVe" placeholder="https://...">
+        </div>
       </div>
       <div class="field">
         <label>Foto del producto (opcional, para compartir por WhatsApp)</label>
@@ -341,6 +374,11 @@
         <div class="value gain" id="gananciaFinal">—</div>
       </div>
 
+      <div class="result r-vef">
+        <div class="label"><strong>Precio de venta en Venezuela</strong>el precio manual en Bs convertido a dólar BCV y Binance</div>
+        <div class="value vef" id="ventaVeEq">—</div>
+      </div>
+
       <div class="warning" id="avisoBrecha"></div>
       <button class="btn-save" id="btnGuardar">＋ Guardar producto en la lista</button>
       <button class="btn-wa-main" id="btnCompartir">✆ Compartir precio por WhatsApp</button>
@@ -359,7 +397,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const inputs = ['nombre','costeEur','eurUsd','tasaBcv','tasaBinance','ganancia'];
+const inputs = ['nombre','costeEur','precioVentaVe','linkVe','eurUsd','tasaBcv','tasaBinance','ganancia'];
 
 const fmt = (n, dec = 2) => n.toLocaleString('es-VE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
@@ -467,6 +505,7 @@ function calcularValores() {
 
   const costeUsd = costeEur * eurUsd;
   const precioUsd = costeUsd * (1 + m);
+  const ventaVe = parseFloat($('precioVentaVe').value);
   return {
     costeEur, eurUsd, bcv, binance, m,
     costeUsd,
@@ -474,7 +513,11 @@ function calcularValores() {
     gananciaUsd: costeUsd * m,
     gananciaEur: costeEur * m,
     precioVef: binance > 0 ? precioUsd * binance : null,
-    precioUsdBcv: (binance > 0 && bcv > 0) ? precioUsd * binance / bcv : null
+    precioUsdBcv: (binance > 0 && bcv > 0) ? precioUsd * binance / bcv : null,
+    ventaVe: ventaVe > 0 ? ventaVe : null,
+    ventaVeUsdBcv: (ventaVe > 0 && bcv > 0) ? ventaVe / bcv : null,
+    ventaVeUsdBinance: (ventaVe > 0 && binance > 0) ? ventaVe / binance : null,
+    linkVe: $('linkVe').value.trim() || null
   };
 }
 
@@ -488,7 +531,7 @@ function calcular() {
 
   const v = calcularValores();
   if (!v) {
-    ['costeUsd','precioUsd','precioVef','precioUsdBcv','gananciaFinal'].forEach(id => $(id).textContent = '—');
+    ['costeUsd','precioUsd','precioVef','precioUsdBcv','gananciaFinal','ventaVeEq'].forEach(id => $(id).textContent = '—');
     $('avisoBrecha').textContent = '';
     return;
   }
@@ -498,6 +541,10 @@ function calcular() {
   $('gananciaFinal').textContent = '$' + fmt(v.gananciaUsd) + ' (' + fmt(v.gananciaEur) + ' €)';
   $('precioVef').textContent = v.precioVef !== null ? fmt(v.precioVef) + ' Bs' : '—';
   $('precioUsdBcv').textContent = v.precioUsdBcv !== null ? '$' + fmt(v.precioUsdBcv) + ' BCV' : '—';
+  $('ventaVeEq').textContent = v.ventaVe !== null
+    ? (v.ventaVeUsdBcv !== null ? '$' + fmt(v.ventaVeUsdBcv) + ' BCV' : '') +
+      (v.ventaVeUsdBinance !== null ? ' · $' + fmt(v.ventaVeUsdBinance) + ' Bin' : '')
+    : '—';
 
   if (v.precioVef !== null && v.bcv > 0) {
     const brecha = ((v.binance / v.bcv) - 1) * 100;
@@ -529,6 +576,10 @@ function guardarProducto() {
     precioUsd: v.precioUsd,
     precioVef: v.precioVef,
     precioUsdBcv: v.precioUsdBcv,
+    ventaVe: v.ventaVe,
+    ventaVeUsdBcv: v.ventaVeUsdBcv,
+    ventaVeUsdBinance: v.ventaVeUsdBinance,
+    linkVe: v.linkVe,
     foto: fotoActual
   });
   persistirProductos();
@@ -548,6 +599,8 @@ function cargarProducto(id) {
   $('nombre').value = p.nombre;
   $('costeEur').value = p.costeEur;
   $('ganancia').value = p.margen;
+  $('precioVentaVe').value = p.ventaVe || '';
+  $('linkVe').value = p.linkVe || '';
   fotoActual = p.foto || null;
   mostrarFoto();
   calcular(); // recalcula con las tasas actuales del día
@@ -565,6 +618,7 @@ function renderProductos() {
         ${p.foto ? `<img class="p-thumb" src="${p.foto}" alt="">` : ''}
         <div class="p-nombre">${escapeHtml(p.nombre)}</div>
         <span class="p-margen">${p.margen}%</span>
+        ${p.linkVe ? `<a class="p-link" href="${escapeHtml(p.linkVe)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Ver producto en Venezuela">🔗</a>` : ''}
         <button class="p-borrar" onclick="borrarProducto(${p.id}, event)" title="Eliminar">✕</button>
       </div>
       <div class="p-stats">
@@ -582,6 +636,13 @@ function renderProductos() {
         </div>
         <button class="btn-wa" onclick="compartirProducto(${p.id}, event)" title="Compartir por WhatsApp">✆</button>
       </div>
+      ${p.ventaVe ? `
+      <div class="p-venta">
+        <span class="k">Venta VE</span>
+        <span>${fmt(p.ventaVe)} Bs</span>
+        <span class="eq">$${p.ventaVeUsdBcv != null ? fmt(p.ventaVeUsdBcv) : '—'} BCV</span>
+        <span class="eq">$${p.ventaVeUsdBinance != null ? fmt(p.ventaVeUsdBinance) : '—'} Bin</span>
+      </div>` : ''}
     </div>
   `).join('');
 }
