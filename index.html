@@ -166,6 +166,35 @@
   }
   .value.vef { color: var(--text); }
   .value.gain { color: var(--green); }
+  .result.nr { border-left-color: var(--red); }
+  .result.nr .value.gain { color: var(--red); }
+  .gain-alert {
+    display: none;
+    color: var(--red);
+    font-size: 1.15rem;
+    cursor: help;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .gain-alert::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 135%; right: -10px;
+    width: 250px;
+    background: #1c2740;
+    color: var(--text);
+    border: 1px solid rgba(248, 113, 113, .45);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: .72rem; font-weight: 500;
+    line-height: 1.45;
+    white-space: normal;
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s;
+    z-index: 10;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .4);
+  }
+  .gain-alert:hover::after { opacity: 1; }
   .warning {
     font-size: .8rem; color: var(--yellow);
     margin-top: 12px; line-height: 1.5;
@@ -326,7 +355,7 @@
       </div>
       <div class="row2">
         <div>
-          <label for="precioVentaVe">Precio de venta en Venezuela (Bs a tasa BCV, opcional)</label>
+          <label for="precioVentaVe">Precio de venta en tienda (VZLA) — Bs a tasa BCV, opcional</label>
           <input type="number" id="precioVentaVe" min="0" step="0.01" placeholder="12500">
         </div>
         <div>
@@ -402,11 +431,12 @@
 
       <div class="result r-gain">
         <div class="label"><strong>Ganancia final</strong>en dólares reales (y su equivalente en euros)</div>
+        <span class="gain-alert" id="gananciaAlerta">⚠</span>
         <div class="value gain" id="gananciaFinal">—</div>
       </div>
 
       <div class="result r-vef">
-        <div class="label"><strong>Precio de venta en Venezuela</strong>el precio manual en Bs convertido a dólar BCV y Binance</div>
+        <div class="label"><strong>Precio de venta en tienda (VZLA)</strong>el precio manual en Bs convertido a dólar BCV y Binance</div>
         <div class="value vef" id="ventaVeEq">—</div>
       </div>
 
@@ -566,6 +596,8 @@ function calcular() {
     ['costeUsd','precioUsd','precioVef','precioUsdBcv','gananciaFinal','ventaVeEq'].forEach(id => $(id).textContent = '—');
     $('avisoBrecha').textContent = '';
     $('avisoRentable').textContent = '';
+    $('gananciaAlerta').style.display = 'none';
+    $('gananciaAlerta').closest('.result').classList.remove('nr');
     return;
   }
 
@@ -589,6 +621,15 @@ function calcular() {
         : 'Ni siquiera sin ganancia igualarias su precio: venderias con perdida.');
   }
   $('avisoRentable').textContent = avisoNR;
+  const alerta = $('gananciaAlerta');
+  if (avisoNR) {
+    alerta.style.display = 'inline';
+    alerta.setAttribute('data-tip', 'Ganancia no alcanzable: con este margen venderias mas caro que la tienda en Venezuela. Baja la ganancia deseada hasta que desaparezca el aviso.');
+    alerta.closest('.result').classList.add('nr');
+  } else {
+    alerta.style.display = 'none';
+    alerta.closest('.result').classList.remove('nr');
+  }
 
   if (v.precioVef !== null && v.bcv > 0) {
     const brecha = ((v.binance / v.bcv) - 1) * 100;
