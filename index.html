@@ -145,6 +145,24 @@
   .result .label strong { color: var(--text); display: block; font-size: .93rem; margin-bottom: 2px; }
   .result .value { font-size: 1.3rem; font-weight: 800; white-space: nowrap; letter-spacing: -.01em; }
   .value.usd { color: var(--accent); }
+  .result.linked {
+    border-left-color: var(--accent);
+    background: linear-gradient(90deg, rgba(56, 189, 248, .10), var(--card2) 45%);
+    margin-bottom: 6px;
+  }
+  .result.linked .value { color: var(--accent); }
+  .linked-chip {
+    display: inline-block;
+    font-size: .6rem; font-weight: 800;
+    letter-spacing: .07em; text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(56, 189, 248, .12);
+    border: 1px solid rgba(56, 189, 248, .3);
+    border-radius: 20px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
   .value.vef { color: var(--text); }
   .value.gain { color: var(--green); }
   .warning {
@@ -366,18 +384,18 @@
         <div class="value usd" id="costeUsd">—</div>
       </div>
 
-      <div class="result">
-        <div class="label"><strong>Precio de venta en USD</strong>si te pagan en dólares (Binance, Zelle, efectivo)</div>
+      <div class="result linked">
+        <div class="label"><strong>Precio de venta en USD <span class="linked-chip">🔗 mismo precio</span></strong>si te pagan en dólares (Binance, Zelle, efectivo)</div>
         <div class="value usd" id="precioUsd">—</div>
       </div>
 
-      <div class="result r-vef">
-        <div class="label"><strong>Precio de venta en bolívares</strong>calculado con tasa Binance para no perder al recomprar dólares</div>
+      <div class="result linked">
+        <div class="label"><strong>Precio de venta en bolívares <span class="linked-chip">🔗 mismo precio</span></strong>calculado con tasa Binance para no perder al recomprar dólares</div>
         <div class="value vef" id="precioVef">—</div>
       </div>
 
-      <div class="result r-vef">
-        <div class="label"><strong>Ese precio en Bs equivale a</strong>«dólares BCV» (precio de etiqueta si lo marcas a tasa BCV)</div>
+      <div class="result linked">
+        <div class="label"><strong>Ese precio en Bs equivale a <span class="linked-chip">🔗 mismo precio</span></strong>«dólares BCV» (precio de etiqueta si lo marcas a tasa BCV)</div>
         <div class="value vef" id="precioUsdBcv">—</div>
       </div>
 
