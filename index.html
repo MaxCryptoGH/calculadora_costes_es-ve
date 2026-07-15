@@ -156,6 +156,18 @@
     padding: 10px 12px;
   }
   .warning:empty { display: none; }
+  .warning.danger {
+    color: var(--red);
+    background: rgba(248, 113, 113, .08);
+    border-color: rgba(248, 113, 113, .25);
+  }
+  .p-nr {
+    font-size: .68rem; font-weight: 700;
+    color: var(--red);
+    background: rgba(248, 113, 113, .12);
+    border-radius: 20px; padding: 2px 8px;
+    flex-shrink: 0;
+  }
   .product-name-display { color: var(--yellow); text-transform: none; letter-spacing: 0; }
   .btn-save {
     width: 100%; margin-top: 12px; padding: 13px;
@@ -379,6 +391,7 @@
         <div class="value vef" id="ventaVeEq">—</div>
       </div>
 
+      <div class="warning danger" id="avisoRentable"></div>
       <div class="warning" id="avisoBrecha"></div>
       <button class="btn-save" id="btnGuardar">＋ Guardar producto en la lista</button>
       <button class="btn-wa-main" id="btnCompartir">✆ Compartir precio por WhatsApp</button>
@@ -533,6 +546,7 @@ function calcular() {
   if (!v) {
     ['costeUsd','precioUsd','precioVef','precioUsdBcv','gananciaFinal','ventaVeEq'].forEach(id => $(id).textContent = '—');
     $('avisoBrecha').textContent = '';
+    $('avisoRentable').textContent = '';
     return;
   }
 
@@ -545,6 +559,17 @@ function calcular() {
     ? (v.ventaVeUsdBcv !== null ? '$' + fmt(v.ventaVeUsdBcv) + ' BCV' : '') +
       (v.ventaVeUsdBinance !== null ? ' · $' + fmt(v.ventaVeUsdBinance) + ' Bin' : '')
     : '—';
+
+  let avisoNR = '';
+  if (v.ventaVe !== null && v.precioVef !== null && v.precioVef > v.ventaVe) {
+    const mMax = Math.floor((v.ventaVe / (v.binance * v.costeUsd) - 1) * 100);
+    avisoNR = '\u26d4 NO RENTABLE con ' + Math.round(v.m * 100) + '% de ganancia: tu precio seria ' + fmt(v.precioVef) +
+      ' Bs, mas caro que la competencia en Venezuela (' + fmt(v.ventaVe) + ' Bs). ' +
+      (mMax >= 10 ? 'Baja la ganancia a ' + mMax + '% o menos para igualar su precio.'
+        : mMax > 0 ? 'Solo serias competitivo con ' + mMax + '% de ganancia (por debajo del minimo de la barra).'
+        : 'Ni siquiera sin ganancia igualarias su precio: venderias con perdida.');
+  }
+  $('avisoRentable').textContent = avisoNR;
 
   if (v.precioVef !== null && v.bcv > 0) {
     const brecha = ((v.binance / v.bcv) - 1) * 100;
@@ -580,6 +605,7 @@ function guardarProducto() {
     ventaVeUsdBcv: v.ventaVeUsdBcv,
     ventaVeUsdBinance: v.ventaVeUsdBinance,
     linkVe: v.linkVe,
+    noRentable: !!(v.ventaVe && v.precioVef && v.precioVef > v.ventaVe),
     foto: fotoActual
   });
   persistirProductos();
@@ -618,6 +644,7 @@ function renderProductos() {
         ${p.foto ? `<img class="p-thumb" src="${p.foto}" alt="">` : ''}
         <div class="p-nombre">${escapeHtml(p.nombre)}</div>
         <span class="p-margen">${p.margen}%</span>
+        ${p.noRentable ? '<span class="p-nr">No rentable</span>' : ''}
         ${p.linkVe ? `<a class="p-link" href="${escapeHtml(p.linkVe)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Ver producto en Venezuela">🔗</a>` : ''}
         <button class="p-borrar" onclick="borrarProducto(${p.id}, event)" title="Eliminar">✕</button>
       </div>
