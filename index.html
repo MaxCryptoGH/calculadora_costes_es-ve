@@ -636,11 +636,11 @@ function calcular() {
     const recuperado = v.precioUsd * v.bcv / v.binance;
     const margenReal = (recuperado / v.costeUsd - 1) * 100;
     $('avisoBrecha').textContent = '⚠ Brecha BCV/Binance: ' + fmt(brecha, 1) +
-      '%. Si vendieras a $' + fmt(v.precioUsd) + ' × tasa BCV (' + fmt(v.precioUsd * v.bcv) +
-      ' Bs), al recomprar dólares en Binance solo recuperarías $' + fmt(recuperado) +
-      ': tu ganancia real bajaría del ' + Math.round(v.m * 100) + '% al ' + fmt(margenReal, 1) + '%' +
-      (margenReal < 0 ? ' (venderías con pérdida)' : '') +
-      '. Por eso el precio en Bs se calcula con la tasa Binance.';
+      '%. Si cobras en bolívares, usa siempre el «Precio de venta en bolívares» (' + fmt(v.precioVef) +
+      ' Bs). Si por error convirtieras el precio en USD directo a tasa BCV ($' + fmt(v.precioUsd) +
+      ' × BCV = ' + fmt(v.precioUsd * v.bcv) + ' Bs), al recomprar dólares en Binance solo recuperarías $' +
+      fmt(recuperado) + ': tu ganancia real bajaría del ' + Math.round(v.m * 100) + '% al ' + fmt(margenReal, 1) + '%' +
+      (margenReal < 0 ? ' (venderías con pérdida)' : '') + '.';
   } else {
     $('avisoBrecha').textContent = '';
   }
