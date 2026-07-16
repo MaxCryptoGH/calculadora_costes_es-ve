@@ -100,6 +100,18 @@
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 12px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 560px) { .row3, .row2 { grid-template-columns: 1fr; } }
+  .venta-usd-row { display: flex; gap: 8px; }
+  .venta-usd-row input[type=number] { flex: 1; min-width: 0; }
+  #ventaVeBs {
+    flex: 1; min-width: 0;
+    color: var(--muted);
+    background: rgba(11, 17, 32, .4);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-size: 1rem;
+    cursor: default;
+  }
   .field { margin-bottom: 14px; }
   .field:last-child { margin-bottom: 0; }
 
@@ -365,8 +377,11 @@
       </div>
       <div class="row2">
         <div>
-          <label for="precioVentaVe">Precio de venta en tienda (VZLA) — Bs a tasa BCV, opcional</label>
-          <input type="number" id="precioVentaVe" min="0" step="0.01" placeholder="12500">
+          <label for="precioVentaVeUsd">Precio de venta en tienda (VZLA) — USD a tasa BCV, opcional</label>
+          <div class="venta-usd-row">
+            <input type="number" id="precioVentaVeUsd" min="0" step="0.01" placeholder="17.25">
+            <input type="text" id="ventaVeBs" disabled placeholder="— Bs" title="Equivalente en bolívares a la tasa BCV del día">
+          </div>
         </div>
         <div>
           <label for="linkVe">Link del producto en Venezuela (opcional)</label>
@@ -446,7 +461,7 @@
       </div>
 
       <div class="result r-vef">
-        <div class="label"><strong>Precio de venta en tienda (VZLA)</strong>el precio manual en Bs convertido a dólar BCV y Binance</div>
+        <div class="label"><strong>Precio de venta en tienda (VZLA)</strong>tu precio manual en USD (BCV) convertido a bolívares y a dólar Binance</div>
         <div class="value vef" id="ventaVeEq">—</div>
       </div>
 
@@ -469,7 +484,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const inputs = ['nombre','costeEur','precioVentaVe','linkVe','eurUsd','tasaBcv','tasaBinance','ganancia'];
+const inputs = ['nombre','costeEur','precioVentaVeUsd','linkVe','eurUsd','tasaBcv','tasaBinance','ganancia'];
 
 const fmt = (n, dec = 2) => n.toLocaleString('es-VE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
@@ -593,7 +608,8 @@ function calcularValores() {
 
   const costeUsd = costeEur * eurUsd;
   const precioUsd = costeUsd * (1 + m);
-  const ventaVe = parseFloat($('precioVentaVe').value);
+  const ventaVeUsd = parseFloat($('precioVentaVeUsd').value);
+  const ventaVe = (ventaVeUsd > 0 && bcv > 0) ? ventaVeUsd * bcv : null;
   return {
     costeEur, eurUsd, bcv, binance, m,
     costeUsd,
@@ -602,9 +618,10 @@ function calcularValores() {
     gananciaEur: costeEur * m,
     precioVef: binance > 0 ? precioUsd * binance : null,
     precioUsdBcv: (binance > 0 && bcv > 0) ? precioUsd * binance / bcv : null,
-    ventaVe: ventaVe > 0 ? ventaVe : null,
-    ventaVeUsdBcv: (ventaVe > 0 && bcv > 0) ? ventaVe / bcv : null,
-    ventaVeUsdBinance: (ventaVe > 0 && binance > 0) ? ventaVe / binance : null,
+    ventaVeUsd: ventaVeUsd > 0 ? ventaVeUsd : null,
+    ventaVe: ventaVe,
+    ventaVeUsdBcv: ventaVeUsd > 0 ? ventaVeUsd : null,
+    ventaVeUsdBinance: (ventaVe !== null && binance > 0) ? ventaVe / binance : null,
     linkVe: $('linkVe').value.trim() || null
   };
 }
@@ -616,6 +633,10 @@ function calcular() {
   $('nombreDisplay').textContent = nombre ? '· ' + nombre : '';
 
   guardarEstado();
+
+  const vUsdTienda = parseFloat($('precioVentaVeUsd').value);
+  const bcvHoy = parseFloat($('tasaBcv').value);
+  $('ventaVeBs').value = (vUsdTienda > 0 && bcvHoy > 0) ? fmt(vUsdTienda * bcvHoy) + ' Bs' : '';
 
   const v = calcularValores();
   if (!v) {
@@ -632,8 +653,7 @@ function calcular() {
   $('precioVef').textContent = v.precioVef !== null ? fmt(v.precioVef) + ' Bs' : '—';
   $('precioUsdBcv').textContent = v.precioUsdBcv !== null ? '$' + fmt(v.precioUsdBcv) + ' BCV' : '—';
   $('ventaVeEq').textContent = v.ventaVe !== null
-    ? (v.ventaVeUsdBcv !== null ? '$' + fmt(v.ventaVeUsdBcv) + ' BCV' : '') +
-      (v.ventaVeUsdBinance !== null ? ' · $' + fmt(v.ventaVeUsdBinance) + ' Bin' : '')
+    ? fmt(v.ventaVe) + ' Bs' + (v.ventaVeUsdBinance !== null ? ' · $' + fmt(v.ventaVeUsdBinance) + ' Bin' : '')
     : '—';
 
   let avisoNR = '';
@@ -677,6 +697,7 @@ function guardarProducto() {
     precioUsd: v.precioUsd,
     precioVef: v.precioVef,
     precioUsdBcv: v.precioUsdBcv,
+    ventaVeUsd: v.ventaVeUsd,
     ventaVe: v.ventaVe,
     ventaVeUsdBcv: v.ventaVeUsdBcv,
     ventaVeUsdBinance: v.ventaVeUsdBinance,
@@ -701,7 +722,7 @@ function cargarProducto(id) {
   $('nombre').value = p.nombre;
   $('costeEur').value = p.costeEur;
   $('ganancia').value = p.margen;
-  $('precioVentaVe').value = p.ventaVe || '';
+  $('precioVentaVeUsd').value = p.ventaVeUsd || '';
   $('linkVe').value = p.linkVe || '';
   fotoActual = p.foto || null;
   mostrarFoto();
@@ -727,7 +748,7 @@ function renderProductos() {
       <div class="p-stats">
         <div class="p-stat">
           <div class="k">Coste</div>
-          <div class="v">${fmt(p.costeEur)} €</div>
+          <div class="v">$${fmt(p.costeUsd)}</div>
         </div>
         <div class="p-stat gan">
           <div class="k">Ganancia $</div>
